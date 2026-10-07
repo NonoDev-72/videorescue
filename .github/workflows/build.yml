@@ -2,7 +2,7 @@ name: Build
 
 on:
   pull_request:
-    paths: ["videorescue/**", "packaging/**", "assets/**", "requirements*.txt", ".github/workflows/build.yml"]
+    paths: ["videorescue/**", "packaging/**", "assets/icon.*", "requirements*.txt", ".github/workflows/build.yml"]
   push:
     tags: ["v*"]
   workflow_dispatch:
