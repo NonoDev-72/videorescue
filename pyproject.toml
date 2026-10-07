@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "decode-video"
+dynamic = ["version"]
+description = "Reparador local de videos dañados (MP4, MOV, AVI, H.264/H.265)"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "Apache-2.0" }
+authors = [{ name = "Juan Antonio Bedmar González" }]
+dependencies = ["flask", "imageio-ffmpeg"]
+
+[project.optional-dependencies]
+desktop = ["pywebview"]
+build = ["pywebview", "pyinstaller", "pillow"]
+
+[project.scripts]
+decode-video = "decode_video.__main__:main"
+
+[tool.setuptools.dynamic]
+version = { attr = "decode_video.__version__" }
+
+[tool.setuptools.packages.find]
+include = ["decode_video*"]
+
+[tool.setuptools.package-data]
+decode_video = ["static/*"]
