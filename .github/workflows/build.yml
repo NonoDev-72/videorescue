@@ -1,0 +1,67 @@
+name: Build
+
+on:
+  pull_request:
+    paths: ["decode_video/**", "packaging/**", "assets/**", "requirements*.txt", ".github/workflows/build.yml"]
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-14
+            name: macOS
+          - os: windows-latest
+            name: Windows
+    runs-on: ${{ matrix.os }}
+    name: ${{ matrix.name }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Compilar (macOS)
+        if: runner.os == 'macOS'
+        run: ./packaging/build_mac.sh
+
+      - name: Compilar (Windows)
+        if: runner.os == 'Windows'
+        shell: cmd
+        run: packaging\build_windows.bat
+
+      - name: Comprimir carpeta de Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: Compress-Archive -Path dist\DECODE-VIDEO -DestinationPath dist\DECODE-VIDEO-Windows.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DECODE-VIDEO-${{ matrix.name }}
+          path: |
+            dist/DECODE-VIDEO.dmg
+            dist/DECODE-VIDEO-Windows.zip
+          if-no-files-found: error
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/*
+          generate_release_notes: true
