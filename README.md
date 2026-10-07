@@ -124,6 +124,10 @@ scripts/              # utilidades de desarrollo
 tools/                # generador del icono
 ```
 
+## Historial de cambios
+
+Consulta el [CHANGELOG](CHANGELOG.md) o los [Releases](../../releases).
+
 ## Contribuciones y seguridad
 
 Las contribuciones requieren aprobación previa: lee [CONTRIBUTING.md](CONTRIBUTING.md). Para reportar vulnerabilidades, consulta [SECURITY.md](SECURITY.md).
