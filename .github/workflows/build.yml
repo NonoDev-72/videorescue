@@ -20,6 +20,8 @@ jobs:
             name: macOS
           - os: windows-latest
             name: Windows
+    # Las PRs de forks no compilan: solo se ejecuta código del propio repositorio
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ${{ matrix.os }}
     name: ${{ matrix.name }}
     steps:

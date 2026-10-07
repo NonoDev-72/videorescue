@@ -96,6 +96,10 @@ scripts/              # utilidades de desarrollo
 tools/                # generador del icono
 ```
 
+## Contribuciones y seguridad
+
+Las contribuciones requieren aprobación previa: lee [CONTRIBUTING.md](CONTRIBUTING.md). Para reportar vulnerabilidades, consulta [SECURITY.md](SECURITY.md).
+
 ## Licencia y atribución
 
 Distribuido bajo [Apache License 2.0](LICENSE). Puedes usar, modificar y redistribuir el software, pero debes **conservar el aviso de copyright y el archivo [`NOTICE`](NOTICE)** que atribuyen la autoría a Juan Antonio Bedmar González, e indicar los cambios que hagas.
