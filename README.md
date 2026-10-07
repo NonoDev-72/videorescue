@@ -92,6 +92,19 @@ python tools/make_icon.py         # regenera assets/icon.{png,ico,icns}
 
 PyInstaller no compila entre sistemas, así que cada instalador se genera en su propio sistema operativo.
 
+## Tests
+
+```bash
+pip install -e ".[dev]"
+pytest
+```
+
+Los tests generan un video de prueba con el ffmpeg incluido, lo dañan (truncado, sin índice, cabecera destruida) y comprueban que se repara, que el original no se modifica y que la API local funciona.
+
+**Limitaciones conocidas** (marcadas como `xfail` en los tests):
+- Videos con **fotogramas B**: se reparan y se reproducen, pero ffmpeg avisa de marcas de tiempo no monótonas.
+- Audio AAC **intercalado paquete a paquete** (muxado por defecto de ffmpeg): el escáner no localiza los frames sueltos. Con audio en bloques (grabaciones de pantalla, DVR) funciona.
+
 ## Estructura
 
 ```
@@ -100,6 +113,7 @@ videorescue/
 ├── desktop.py        # ventana nativa (pywebview)
 ├── repair/           # motor de reparación (analyze, rebuild, engine, ffmpeg_tools)
 └── static/           # interfaz web (HTML/CSS/JS)
+tests/                # suite de pytest
 assets/               # icono de la aplicación
 packaging/            # scripts de empaquetado (PyInstaller)
 scripts/              # utilidades de desarrollo
