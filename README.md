@@ -14,6 +14,10 @@
   <img alt="Plataformas" src="https://img.shields.io/badge/macOS%20%7C%20Windows%20%7C%20Linux-lightgrey">
 </p>
 
+<p align="center">
+  <img src="assets/screenshot.png" alt="Captura de videorescue" width="800">
+</p>
+
 ---
 
 ## ¿Qué hace?
