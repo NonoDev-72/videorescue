@@ -1,4 +1,4 @@
-"""`python -m decode_video` → interfaz web local (navegador). Con `--desktop`, ventana nativa."""
+"""`python -m videorescue` → interfaz web local (navegador). Con `--desktop`, ventana nativa."""
 import sys
 
 def main():

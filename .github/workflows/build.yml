@@ -2,7 +2,7 @@ name: Build
 
 on:
   pull_request:
-    paths: ["decode_video/**", "packaging/**", "assets/**", "requirements*.txt", ".github/workflows/build.yml"]
+    paths: ["videorescue/**", "packaging/**", "assets/**", "requirements*.txt", ".github/workflows/build.yml"]
   push:
     tags: ["v*"]
   workflow_dispatch:
@@ -40,14 +40,14 @@ jobs:
       - name: Comprimir carpeta de Windows
         if: runner.os == 'Windows'
         shell: pwsh
-        run: Compress-Archive -Path dist\DECODE-VIDEO -DestinationPath dist\DECODE-VIDEO-Windows.zip
+        run: Compress-Archive -Path dist\videorescue -DestinationPath dist\videorescue-Windows.zip
 
       - uses: actions/upload-artifact@v4
         with:
-          name: DECODE-VIDEO-${{ matrix.name }}
+          name: videorescue-${{ matrix.name }}
           path: |
-            dist/DECODE-VIDEO.dmg
-            dist/DECODE-VIDEO-Windows.zip
+            dist/videorescue.dmg
+            dist/videorescue-Windows.zip
           if-no-files-found: error
 
   release:
