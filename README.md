@@ -42,7 +42,15 @@ Descarga el instalador desde [Releases](../../releases):
 | macOS (Apple Silicon) | `videorescue.dmg` → arrastra la app a *Aplicaciones* |
 | Windows | `videorescue.exe` (carpeta `videorescue`) |
 
-> **macOS:** la app no está firmada. La primera vez, clic derecho → *Abrir*.
+> **macOS:** la app no está firmada por Apple, así que la primera vez aparece el aviso *"Apple no ha podido verificar que videorescue.app no contenga software malicioso"*. Para abrirla:
+> 1. Intenta abrir la app y cierra el aviso.
+> 2. Ve a *Ajustes del Sistema → Privacidad y seguridad* y pulsa **Abrir igualmente**.
+>
+> O, desde la terminal: `xattr -dr com.apple.quarantine /Applications/videorescue.app`
+>
+> En macOS 14 o anterior también sirve clic derecho → *Abrir*.
+>
+> **Windows:** SmartScreen puede avisar por lo mismo. Pulsa *Más información → Ejecutar de todas formas*.
 
 Los resultados se guardan por defecto en `~/videorescue/salida`.
 
