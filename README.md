@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="assets/icon.png" alt="DECODE-VIDEO" width="128">
+  <img src="assets/icon.png" alt="videorescue" width="128">
 </p>
 
-<h1 align="center">DECODE-VIDEO</h1>
+<h1 align="center">videorescue</h1>
 
 <p align="center">
   Reparador <b>100 % local</b> de videos dañados. Tus archivos nunca salen de tu equipo.
@@ -39,18 +39,18 @@ Descarga el instalador desde [Releases](../../releases):
 
 | Sistema | Archivo |
 |---|---|
-| macOS (Apple Silicon) | `DECODE-VIDEO.dmg` → arrastra la app a *Aplicaciones* |
-| Windows | `DECODE-VIDEO.exe` (carpeta `DECODE-VIDEO`) |
+| macOS (Apple Silicon) | `videorescue.dmg` → arrastra la app a *Aplicaciones* |
+| Windows | `videorescue.exe` (carpeta `videorescue`) |
 
 > **macOS:** la app no está firmada. La primera vez, clic derecho → *Abrir*.
 
-Los resultados se guardan por defecto en `~/DECODE-VIDEO/salida`.
+Los resultados se guardan por defecto en `~/videorescue/salida`.
 
 ### Desde el código fuente
 
 ```bash
-git clone https://github.com/NonoDev-72/DECODE-VIDEO.git
-cd DECODE-VIDEO
+git clone https://github.com/NonoDev-72/videorescue.git
+cd videorescue
 ./scripts/run.sh          # crea .venv, instala dependencias y abre http://127.0.0.1:5055
 ```
 
@@ -59,9 +59,9 @@ O manualmente:
 ```bash
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-python -m decode_video              # interfaz en el navegador
+python -m videorescue              # interfaz en el navegador
 pip install pywebview
-python -m decode_video --desktop    # ventana nativa
+python -m videorescue --desktop    # ventana nativa
 ```
 
 No hace falta instalar ffmpeg: se incluye a través de [`imageio-ffmpeg`](https://github.com/imageio/imageio-ffmpeg) (si ya tienes uno en el `PATH`, se usa ese).
@@ -75,8 +75,8 @@ No hace falta instalar ffmpeg: se incluye a través de [`imageio-ffmpeg`](https:
 ## Compilar los instaladores
 
 ```bash
-./packaging/build_mac.sh          # → dist/DECODE-VIDEO.dmg   (en macOS)
-packaging\build_windows.bat       # → dist\DECODE-VIDEO\DECODE-VIDEO.exe   (en Windows)
+./packaging/build_mac.sh          # → dist/videorescue.dmg   (en macOS)
+packaging\build_windows.bat       # → dist\videorescue\videorescue.exe   (en Windows)
 python tools/make_icon.py         # regenera assets/icon.{png,ico,icns}
 ```
 
@@ -85,7 +85,7 @@ PyInstaller no compila entre sistemas, así que cada instalador se genera en su 
 ## Estructura
 
 ```
-decode_video/
+videorescue/
 ├── app.py            # servidor Flask + API de trabajos
 ├── desktop.py        # ventana nativa (pywebview)
 ├── repair/           # motor de reparación (analyze, rebuild, engine, ffmpeg_tools)

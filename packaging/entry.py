@@ -1,4 +1,4 @@
 """Punto de entrada para PyInstaller."""
-from decode_video.desktop import main
+from videorescue.desktop import main
 
 main()

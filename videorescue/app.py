@@ -1,4 +1,4 @@
-"""DECODE-VIDEO — reparación de videos dañados (MP4/MOV/AVI/H.264) con interfaz web local."""
+"""videorescue — reparación de videos dañados (MP4/MOV/AVI/H.264) con interfaz web local."""
 import json, os, queue, subprocess, sys, threading, time, uuid
 from flask import Flask, jsonify, request, send_file, send_from_directory, abort
 from .repair import analyze as an, engine, ffmpeg_tools as ft
@@ -7,7 +7,7 @@ FROZEN = getattr(sys, "frozen", False)
 PKG = os.path.dirname(os.path.abspath(__file__))
 ROOT = PKG
 # En la app empaquetada los datos van a la carpeta del usuario (el bundle es de solo lectura)
-DATA = os.path.join(os.path.expanduser("~"), "DECODE-VIDEO") if FROZEN else os.path.dirname(PKG)
+DATA = os.path.join(os.path.expanduser("~"), "videorescue") if FROZEN else os.path.dirname(PKG)
 DEFAULT_OUT = os.path.join(DATA, "salida")
 UPLOADS = os.path.join(DATA, "uploads")
 VIDEO_EXT = {".mp4", ".mov", ".m4v", ".avi", ".mkv", ".3gp", ".ts", ".mts", ".m2ts", ".h264", ".264", ".hevc", ".dav", ".webm", ".flv", ".wmv", ".mpg", ".mpeg", ".bin", ".dat"}
@@ -140,7 +140,7 @@ def reveal():
 
 def main():
     port = int(os.environ.get("PORT", 5055))
-    print("DECODE-VIDEO en http://127.0.0.1:%d   (ffmpeg: %s)" % (port, ft.FFMPEG))
+    print("videorescue en http://127.0.0.1:%d   (ffmpeg: %s)" % (port, ft.FFMPEG))
     app.run(host="127.0.0.1", port=port, threaded=True)
 
 if __name__ == "__main__":

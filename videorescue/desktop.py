@@ -10,7 +10,7 @@ def free_port():
 def main():
     port = free_port()
     threading.Thread(target=lambda: app.run(host="127.0.0.1", port=port, threaded=True), daemon=True).start()
-    webview.create_window("DECODE-VIDEO", "http://127.0.0.1:%d" % port, width=1180, height=800, min_size=(900, 600))
+    webview.create_window("videorescue", "http://127.0.0.1:%d" % port, width=1180, height=800, min_size=(900, 600))
     webview.start()
 
 if __name__ == "__main__":

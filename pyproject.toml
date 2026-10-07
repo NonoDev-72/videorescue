@@ -3,7 +3,7 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "decode-video"
+name = "videorescue"
 dynamic = ["version"]
 description = "Reparador local de videos dañados (MP4, MOV, AVI, H.264/H.265)"
 readme = "README.md"
@@ -17,13 +17,13 @@ desktop = ["pywebview"]
 build = ["pywebview", "pyinstaller", "pillow"]
 
 [project.scripts]
-decode-video = "decode_video.__main__:main"
+videorescue = "videorescue.__main__:main"
 
 [tool.setuptools.dynamic]
-version = { attr = "decode_video.__version__" }
+version = { attr = "videorescue.__version__" }
 
 [tool.setuptools.packages.find]
-include = ["decode_video*"]
+include = ["videorescue*"]
 
 [tool.setuptools.package-data]
-decode_video = ["static/*"]
+videorescue = ["static/*"]
