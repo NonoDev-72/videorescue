@@ -15,6 +15,7 @@ dependencies = ["flask", "imageio-ffmpeg"]
 [project.optional-dependencies]
 desktop = ["pywebview"]
 build = ["pywebview", "pyinstaller", "pillow"]
+dev = ["pytest"]
 
 [project.scripts]
 videorescue = "videorescue.__main__:main"
@@ -27,3 +28,6 @@ include = ["videorescue*"]
 
 [tool.setuptools.package-data]
 videorescue = ["static/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
