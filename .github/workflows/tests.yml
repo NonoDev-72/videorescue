@@ -1,9 +1,12 @@
 name: Tests
 
 on:
+  # Los cambios solo de documentación o imágenes no ejecutan nada
   pull_request:
+    paths-ignore: ["**.md", "assets/**", "LICENSE", "NOTICE", ".gitignore"]
   push:
     branches: [main]
+    paths-ignore: ["**.md", "assets/**", "LICENSE", "NOTICE", ".gitignore"]
 
 permissions:
   contents: read
