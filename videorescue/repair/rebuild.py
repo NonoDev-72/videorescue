@@ -136,7 +136,7 @@ def box(t, *p): d = b"".join(p); return struct.pack(">I4s", 8 + len(d), t) + d
 def full(t, v, fl, *p): return box(t, struct.pack(">I", (v << 24) | fl), *p)
 MATRIX = struct.pack(">9I", 0x10000, 0, 0, 0, 0x10000, 0, 0, 0, 0x40000000)
 
-def build_moov(frames, audio, sps, pps, fps, w, h, base, data_start, audio_codec="alaw", audio_rate=8000, channels=1, ctime=0):
+def build_moov(frames, audio, sps, pps, fps, w, h, base, data_start, audio_codec="alaw", audio_rate=8000, channels=1, ctime=0, avcc_box=None):
     TS = 90000
     n = len(frames)
     delta = max(1, round(TS / fps))
@@ -147,7 +147,7 @@ def build_moov(frames, audio, sps, pps, fps, w, h, base, data_start, audio_codec
     co64 = off and max(off) > 0xFFFFFFFF
     stco = full(b"co64", 0, 0, struct.pack(">I", n), b"".join(struct.pack(">Q", o) for o in off)) if co64 else \
            full(b"stco", 0, 0, struct.pack(">I", n), b"".join(struct.pack(">I", o) for o in off))
-    avcc = box(b"avcC", bytes([1, sps[1], sps[2], sps[3], 0xFF, 0xE1]), struct.pack(">H", len(sps)), sps, b"\x01", struct.pack(">H", len(pps)), pps)
+    avcc = avcc_box or box(b"avcC", bytes([1, sps[1], sps[2], sps[3], 0xFF, 0xE1]), struct.pack(">H", len(sps)), sps, b"\x01", struct.pack(">H", len(pps)), pps)
     avc1 = box(b"avc1", b"\0" * 6, struct.pack(">H", 1), b"\0" * 16, struct.pack(">HH", w, h), struct.pack(">II", 0x480000, 0x480000), b"\0" * 4,
                struct.pack(">H", 1), b"\0" * 32, struct.pack(">H", 24), struct.pack(">h", -1), avcc)
     keys = [i + 1 for i, f in enumerate(frames) if f[2]]
@@ -191,9 +191,80 @@ def _trak(tid, dur, ts, w, h, htype, hname, mhd, stbl, ctime, vol, mvts=None):
     dinf = box(b"dinf", full(b"dref", 0, 0, struct.pack(">I", 1), full(b"url ", 0, 1)))
     return box(b"trak", tkhd, box(b"mdia", mdhd, hdlr, box(b"minf", mhd, dinf, stbl)))
 
+# ---------- video de referencia ----------
+def _boxes(d, p=0, end=None):
+    """Itera (tipo, inicio_payload, fin) de los átomos hijos en d[p:end]."""
+    end = len(d) if end is None else end
+    while p + 8 <= end:
+        sz, t = struct.unpack_from(">I4s", d, p); hdr = 8
+        if sz == 1: sz = struct.unpack_from(">Q", d, p + 8)[0]; hdr = 16
+        elif sz == 0: sz = end - p
+        if sz < hdr or p + sz > end: break
+        yield t, p + hdr, p + sz
+        p += sz
+
+def _find(d, path, p=0, end=None):
+    """Primer átomo en la ruta (p. ej. [b'mdia', b'minf']); devuelve (inicio_payload, fin) o None."""
+    for t, a, b in _boxes(d, p, end):
+        if t == path[0]:
+            return (a, b) if len(path) == 1 else _find(d, path[1:], a, b)
+    return None
+
+def read_reference(path):
+    """Lee de un video sano el avcC (SPS/PPS), los fps y el códec de audio. Devuelve dict o None si no tiene moov legible."""
+    with open(path, "rb") as f:
+        size = os.fstat(f.fileno()).st_size; pos = 0; moov = None
+        while pos + 8 <= size:
+            f.seek(pos); h = f.read(16); sz, t = struct.unpack(">I4s", h[:8])
+            if sz == 1: sz = struct.unpack(">Q", h[8:16])[0]
+            elif sz == 0: sz = size - pos
+            if sz < 8: break
+            if t == b"moov":
+                f.seek(pos); moov = f.read(min(sz, 64 << 20)); break
+            pos += sz
+    if not moov: return None
+    out = {}
+    for t, a, b in _boxes(moov, 8, len(moov)):
+        if t != b"trak": continue
+        mdia = _find(moov, [b"mdia"], a, b)
+        if not mdia: continue
+        hd = _find(moov, [b"hdlr"], *mdia)
+        kind = moov[hd[0] + 8:hd[0] + 12] if hd else b""
+        md = _find(moov, [b"mdhd"], *mdia)
+        ts = struct.unpack_from(">I", moov, md[0] + (12 if moov[md[0]] == 0 else 20))[0] if md else 0
+        stbl = _find(moov, [b"minf", b"stbl"], *mdia)
+        if not stbl: continue
+        stsd = _find(moov, [b"stsd"], *stbl)
+        if not stsd: continue
+        ent_t, ea, eb = next(_boxes(moov, stsd[0] + 8, stsd[1]), (None, 0, 0))
+        if kind == b"vide" and ent_t in (b"avc1", b"avc3"):
+            for ct, ca, cb in _boxes(moov, ea + 78, eb):
+                if ct != b"avcC": continue
+                c = moov[ca:cb]
+                nsps = c[5] & 0x1f; q = 6; spss = []
+                for _ in range(nsps):
+                    n = struct.unpack_from(">H", c, q)[0]; spss.append(bytes(c[q + 2:q + 2 + n])); q += 2 + n
+                npps = c[q]; q += 1; ppss = []
+                for _ in range(npps):
+                    n = struct.unpack_from(">H", c, q)[0]; ppss.append(bytes(c[q + 2:q + 2 + n])); q += 2 + n
+                if spss and ppss:
+                    out.update(sps=spss[0], pps=ppss[0], nal_len=(c[4] & 3) + 1, avcc_box=struct.pack(">I4s", 8 + len(c), b"avcC") + bytes(c))
+            st = _find(moov, [b"stts"], *stbl)
+            if st and ts:
+                n = struct.unpack_from(">I", moov, st[0] + 4)[0]; q = st[0] + 8; cnt = dur = 0
+                for _ in range(n):
+                    c_, d_ = struct.unpack_from(">II", moov, q); cnt += c_; dur += c_ * d_; q += 8
+                if dur: out["fps"] = cnt * ts / dur
+        elif kind == b"soun":
+            out["audio"] = ent_t.decode("latin1") if ent_t else None
+    return out if out.get("sps") else (out or None)
+
 # ---------- API ----------
-def rebuild(src, dst, fps=None, audio_codec="alaw", audio_rate=8000, log=None, cancel=None, region=None):
-    """Genera dst = ftyp + mdat(copiado) + moov nuevo. Devuelve dict con estadísticas."""
+def rebuild(src, dst, fps=None, audio_codec="alaw", audio_rate=8000, log=None, cancel=None, region=None, ref=None):
+    """Genera dst = ftyp + mdat(copiado) + moov nuevo. Devuelve dict con estadísticas.
+    `ref` (de read_reference) aporta SPS/PPS y fps cuando el flujo no los lleva (MP4 normal: están solo en el moov perdido).
+    Si audio_codec no es alaw/ulaw (p. ej. AAC) el audio no se puede reindexar y se genera solo el video."""
+    ref = ref or {}
     log = log or (lambda *a, **k: None)
     size = os.path.getsize(src)
     with open(src, "rb") as f, mmap.mmap(f.fileno(), 0, access=mmap.ACCESS_READ) as m:
@@ -214,6 +285,10 @@ def rebuild(src, dst, fps=None, audio_codec="alaw", audio_rate=8000, log=None, c
                         break
                     if sz < 8: break
                     p += sz
+            if start is None and ref.get("sps"):
+                for mt in NAL_START.finditer(m):
+                    if _chain_ok(m, mt.start(), size, 3): start = mt.start(); break
+                if start is not None: log("Sin cabecera MP4: primer frame válido en el byte %d" % start)
             if start is None:
                 mt = re.search(rb"\x00\x00\x00[\x0a-\x40][\x67\x27\x47][\x42\x4d\x58\x64\x6e\xf4\x7a]", m)
                 if not mt: raise RuntimeError("No se encontró ningún SPS H.264 (flujo length-prefixed) en el archivo.")
@@ -223,10 +298,28 @@ def rebuild(src, dst, fps=None, audio_codec="alaw", audio_rate=8000, log=None, c
         log("Región de datos: %d–%d (%.1f MB)" % (start, end, (end - start) / 1e6))
         frames, audio, sps, pps, used = scan(m, start, end, log=log, cancel=cancel)
         if cancel and cancel(): raise RuntimeError("Cancelado")
+        avcc_box = None
+        if not sps or not pps:
+            if ref.get("sps") and ref.get("pps"):
+                sps, pps, avcc_box = ref["sps"], ref["pps"], ref["avcc_box"]
+                log("SPS/PPS tomados del video de referencia")
+                if ref.get("nal_len", 4) != 4: raise RuntimeError("El video de referencia usa longitud de NAL distinta de 4 bytes")
         if not frames or not sps or not pps:
-            raise RuntimeError("No se pudo reconstruir: %d frames, SPS=%s, PPS=%s" % (len(frames), bool(sps), bool(pps)))
+            hint = ""
+            if frames and not (sps and pps):
+                hint = " Indica un video de referencia sano grabado con el mismo dispositivo y ajustes: el SPS/PPS solo estaba en el índice perdido."
+            raise RuntimeError("No se pudo reconstruir: %d frames, SPS=%s, PPS=%s.%s" % (len(frames), bool(sps), bool(pps), hint))
+        if any(f[2] for f in frames):  # empezar en un keyframe
+            while not frames[0][2]: frames.pop(0)
+            start = frames[0][0]
+            audio = [a for a in audio if a[0] >= start]
         info = parse_sps(sps)
+        has_pcm = audio_codec in AUDIO_CODECS
+        if not has_pcm:
+            if audio: log("Audio %s: no se puede reindexar sin el índice original; se genera solo el video" % audio_codec)
+            audio = []
         asecs = sum(a[1] for a in audio) / audio_rate
+        fps = fps or ref.get("fps")
         if not fps:
             fps = len(frames) / asecs if asecs > 5 and 1 <= len(frames) / asecs <= 120 else 25.0
             log("FPS estimado: %.3f (frames/audio)" % fps)
@@ -239,7 +332,7 @@ def rebuild(src, dst, fps=None, audio_codec="alaw", audio_rate=8000, log=None, c
         hdr_big = (data_end - start) + 8 > 0xFFFFFFFF
         mdat_hdr = struct.pack(">I4sQ", 1, b"mdat", data_end - start + 16) if hdr_big else struct.pack(">I4s", data_end - start + 8, b"mdat")
         base = len(ftyp) + len(mdat_hdr)
-        moov = build_moov(frames, audio, sps, pps, fps, info["width"], info["height"], base, start, audio_codec, audio_rate)
+        moov = build_moov(frames, audio, sps, pps, fps, info["width"], info["height"], base, start, audio_codec, audio_rate, avcc_box=avcc_box)
         with open(dst, "wb") as o:
             o.write(ftyp); o.write(mdat_hdr)
             pos = start; CH = 8 << 20
@@ -249,4 +342,4 @@ def rebuild(src, dst, fps=None, audio_codec="alaw", audio_rate=8000, log=None, c
                 log("Escribiendo… %d%%" % ((pos - start) * 100 // max(1, data_end - start)), pct=(pos - start) / max(1, data_end - start))
             o.write(moov)
     return {"frames": len(frames), "audio_chunks": len(audio), "fps": fps, "width": info["width"], "height": info["height"],
-            "seconds": len(frames) / fps, "skipped_tail": end - data_end}
+            "seconds": len(frames) / fps, "audio": bool(audio), "skipped_tail": end - data_end}
