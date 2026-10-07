@@ -17,9 +17,10 @@ def _ref_params(reference, log):
             m = re.search(r"([\d.]+) fps", s["desc"])
             if m: out["fps"] = float(m[1])
         elif s["kind"] == "audio":
-            out["audio_codec"] = "ulaw" if "pcm_mulaw" in s["desc"] else "alaw"
+            out["audio_codec"] = "ulaw" if "pcm_mulaw" in s["desc"] else "alaw" if "pcm_alaw" in s["desc"] else "none"
             m = re.search(r"(\d+) Hz", s["desc"])
             if m: out["audio_rate"] = int(m[1])
+    if "audio_codec" not in out: out["audio_codec"] = "none"  # la referencia no tiene audio PCM
     if out: log("Parámetros tomados del video de referencia: %s" % out)
     return out
 
@@ -44,6 +45,10 @@ def repair(src, outdir, opts, log, cancel):
         ref = _ref_params(opts.get("reference"), log)
         fps = opts.get("fps") or ref.get("fps")
         a_codec, a_rate = ref.get("audio_codec", "alaw"), ref.get("audio_rate", 8000)
+        refinfo = None
+        if opts.get("reference") and os.path.isfile(opts["reference"]):
+            try: refinfo = rb.read_reference(opts["reference"])
+            except Exception as e: log("No se pudo leer el índice del video de referencia: %s" % e)
         has_moov = any(b["type"] == "moov" and b["valid"] and not b["truncated"] for b in a["boxes"])
         candidates = []  # (frames, errors, path, name)
 
@@ -75,7 +80,7 @@ def repair(src, outdir, opts, log, cancel):
         def s_rebuild(out):
             def lg(m, pct=None):
                 if pct is None: log("   " + m)
-            return rb.rebuild(src, out, fps=fps, audio_codec=a_codec, audio_rate=a_rate, log=lg, cancel=cancel)
+            return rb.rebuild(src, out, fps=fps, audio_codec=a_codec, audio_rate=a_rate, log=lg, cancel=cancel, ref=refinfo)
         def s_remux(out):
             rc, err = ft.run(["-err_detect", "ignore_err", "-fflags", "+genpts+discardcorrupt+igndts", "-i", src, "-map", "0", "-c", "copy",
                               "-ignore_unknown", "-movflags", "+faststart", out], log=log, cancel=cancel)
@@ -113,6 +118,8 @@ def repair(src, outdir, opts, log, cancel):
                 attempt("Re-codificación de rescate (libx264)", s_reencode, 0.8)
         if not candidates:
             res["status"] = "failed"; res["message"] = "Ninguna estrategia pudo extraer video decodificable del archivo."
+            if any("video de referencia" in (a.get("error") or "") for a in res["attempts"]):
+                res["message"] += " Prueba de nuevo indicando un video sano grabado con el mismo dispositivo y ajustes (opción «Video de referencia»)."
             return res
         _, c, path, name = best()
         shutil.move(path, final)

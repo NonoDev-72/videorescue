@@ -27,6 +27,8 @@ Prueba varias estrategias en orden y **valida cada resultado decodificándolo** 
 3. **Extracción Annex-B** (H.264/H.265 crudo, típico de DVR).
 4. **Re-codificación de rescate** (libx264) si las anteriores dejan errores.
 
+> **Video de referencia.** En un MP4 normal los parámetros del códec (SPS/PPS) solo existen en el índice (`moov`), que es lo que se pierde. Para reconstruirlo indica un **video sano grabado con el mismo dispositivo y ajustes** (mismo códec y resolución). Si el audio es AAC no puede reindexarse, y se recupera solo el video. El audio PCM A-law/µ-law de DVR sí se recupera.
+
 El original **nunca se modifica**. Si un archivo está lleno de `0xFF`/`0x00` se informa como *sin datos* (irrecuperable).
 
 Formatos: MP4, MOV, M4V, AVI, MKV, 3GP, TS/MTS, H.264/H.265 crudo, DAV, WebM, FLV, WMV, MPG…
